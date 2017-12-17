@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.18;
 /**
  * This is the official Hot Token smart contract (HOT)
  */
@@ -191,7 +191,7 @@ contract StandardToken is ERC20, BasicToken {
  */
 contract HotToken is StandardToken {
 
-  string public constant name = "Hot";
+  string public constant name = "HotToken";
   string public constant symbol = "HOT";
   uint8 public constant decimals = 2; // only two deciminals, token cannot be divided past 1/100th
 
