@@ -1,4 +1,7 @@
 pragma solidity ^0.4.18;
+import "./Owned.sol";
+import "./SafeMath.sol";
+import "./StandardToken.sol";
 // **-----------------------------------------------
 // EthBet.io Token sale contract
 // Final revision 16a
@@ -8,64 +11,17 @@ pragma solidity ^0.4.18;
 // https://github.com/ethereum/EIPs/issues/20
 // -------------------------------------------------
 // Price configuration:
-// First Day Bonus    +50% = 1,500 EBET  = 1 ETH       [blocks: start   -> s+3600]
-// First Week Bonus   +40% = 1,400 EBET  = 1 ETH       [blocks: s+3601  -> s+25200]
-// Second Week Bonus  +30% = 1,300 EBET  = 1 ETH       [blocks: s+25201 -> s+50400]
-// Third Week Bonus   +25% = 1,250 EBET  = 1 ETH       [blocks: s+50401 -> s+75600]
-// Final Week Bonus   +15% = 1,150 EBET  = 1 ETH       [blocks: s+75601 -> end]
+// First Day Bonus    +50% = 1,500 HOT  = 1 ETH       [blocks: start   -> s+3600]
+// First Week Bonus   +40% = 1,400 HOT  = 1 ETH       [blocks: s+3601  -> s+25200]
+// Second Week Bonus  +30% = 1,300 HOT  = 1 ETH       [blocks: s+25201 -> s+50400]
+// Third Week Bonus   +25% = 1,250 HOT  = 1 ETH       [blocks: s+50401 -> s+75600]
+// Final Week Bonus   +15% = 1,150 HOT  = 1 ETH       [blocks: s+75601 -> end]
 // -------------------------------------------------
-contract owned {
-    address public owner;
 
-    function owned() {
-        owner = msg.sender;
-    }
-    modifier onlyOwner {
-        require(msg.sender == owner);
-        _;
-    }
-    function transferOwnership(address newOwner) onlyOwner {
-        owner = newOwner;
-    }
-}
 
-contract safeMath {
-  function safeMul(uint256 a, uint256 b) internal returns (uint256) {
-    uint256 c = a * b;
-    safeAssert(a == 0 || c / a == b);
-    return c;
-  }
 
-  function safeDiv(uint256 a, uint256 b) internal returns (uint256) {
-    safeAssert(b > 0);
-    uint256 c = a / b;
-    safeAssert(a == b * c + a % b);
-    return c;
-  }
-
-  function safeSub(uint256 a, uint256 b) internal returns (uint256) {
-    safeAssert(b <= a);
-    return a - b;
-  }
-
-  function safeAdd(uint256 a, uint256 b) internal returns (uint256) {
-    uint256 c = a + b;
-    safeAssert(c>=a && c>=b);
-    return c;
-  }
-
-  function safeAssert(bool assertion) internal {
-    if (!assertion) revert();
-  }
-}
-
-contract StandardToken is owned, safeMath {
-  function balanceOf(address who) constant returns (uint256);
-  function transfer(address to, uint256 value) returns (bool);
-  event Transfer(address indexed from, address indexed to, uint256 value);
-}
-
-contract EBETCrowdsale is owned, safeMath {
+contract HotCrowdsale is Owned {
+  using SafeMath for uint256;
   // owner/admin & token reward
   address        public admin                     = owner;   // admin address
   StandardToken  public tokenReward;                          // address of the token used as reward
@@ -92,21 +48,21 @@ contract EBETCrowdsale is owned, safeMath {
 
   event Transfer(address indexed from, address indexed to, uint256 value);
   event Approval(address indexed owner, address indexed spender, uint256 value);
-  event Buy(address indexed _sender, uint256 _eth, uint256 _EBET);
+  event Buy(address indexed _sender, uint256 _eth, uint256 _HOT);
   event Refund(address indexed _refunder, uint256 _value);
   event Burn(address _from, uint256 _value);
   mapping(address => uint256) balancesArray;
   mapping(address => uint256) fundValue;
 
   // default function, map admin
-  function EBETCrowdsale() onlyOwner {
+  function HotTokenCrowdsale() onlyOwner {
     admin = msg.sender;
     CurrentStatus = "Crowdsale deployed to chain";
   }
 
   // total number of tokens initially
-  function initialEBETSupply() constant returns (uint256 tokenTotalSupply) {
-      tokenTotalSupply = safeDiv(initialSupply,100);
+  function initialHOTSupply() constant returns (uint256 tokenTotalSupply) {
+      tokenTotalSupply = initialSupply.div(100);
   }
 
   // remaining number of tokens
@@ -120,9 +76,9 @@ contract EBETCrowdsale is owned, safeMath {
       && (!(isCrowdSaleSetup))
       && (!(beneficiaryWallet > 0))){
           // init addresses
-          tokenReward                             = StandardToken(0xc35e495b3de0182DB3126e74b584B745839692aB);  // Kovan: 0xc35e495b3de0182DB3126e74b584B745839692aB
-          beneficiaryWallet                       = 0xa1e6b54b616fa65490ffa227b6cb10F00ac9717C;   // mainnet is 0x00F959866E977698D14a36eB332686304a4d6AbA //testnet = 0xDe6BE2434E8eD8F74C8392A9eB6B6F7D63DDd3D7
-          tokensPerEthPrice                       = 20000;                                         // set day1 initial value floating priceVar 1,500 tokens per Eth
+          tokenReward                             = StandardToken(0x1260d3186Db36A0eB013063c5913680fa5a93630);  // Ropsten: 0xec155d80c7400484fb2d3732fa2aa779348f52e4 Kovan: 0xc35e495b3de0182DB3126e74b584B745839692aB
+          beneficiaryWallet                       = 0xafE0e12d44486365e75708818dcA5558d29beA7D;   // mainnet is 0x00F959866E977698D14a36eB332686304a4d6AbA //testnet = 0xDe6BE2434E8eD8F74C8392A9eB6B6F7D63DDd3D7
+          tokensPerEthPrice                       = 1500;                                         // set day1 initial value floating priceVar 1,500 tokens per Eth
 
           // funding targets
           fundingMinCapInWei                      = 300000000000000000000;                          //300000000000000000000 =  300 Eth (min cap) - crowdsale is considered success after this value  //testnet 6000000000000000000 = 6Eth
@@ -130,7 +86,7 @@ contract EBETCrowdsale is owned, safeMath {
           // update values
           amountRaisedInWei                       = 0;
           initialSupply                           = 1000000000;                                      //   10 million * 2 decimal = 1000000000
-          tokensRemaining                         = safeDiv(initialSupply,100);
+          tokensRemaining                         = initialSupply.div(100);
 
           fundingStartBlock                       = _fundingStartBlock;
           fundingEndBlock                         = _fundingEndBlock;
@@ -152,20 +108,20 @@ contract EBETCrowdsale is owned, safeMath {
 
     function setPrice() {
       // Price configuration:
-      // First Day Bonus    +50% = 1,500 EBET  = 1 ETH       [blocks: start -> s+3600]
-      // First Week Bonus   +40% = 1,400 EBET  = 1 ETH       [blocks: s+3601  -> s+25200]
-      // Second Week Bonus  +30% = 1,300 EBET  = 1 ETH       [blocks: s+25201 -> s+50400]
-      // Third Week Bonus   +25% = 1,250 EBET  = 1 ETH       [blocks: s+50401 -> s+75600]
-      // Final Week Bonus   +15% = 1,150 EBET  = 1 ETH       [blocks: s+75601 -> endblock]
-      if (block.number >= fundingStartBlock && block.number <= fundingStartBlock+3600) { // First Day Bonus    +50% = 1,500 EBET  = 1 ETH  [blocks: start -> s+24]
+      // First Day Bonus    +50% = 1,500 HOT  = 1 ETH       [blocks: start -> s+3600]
+      // First Week Bonus   +40% = 1,400 HOT  = 1 ETH       [blocks: s+3601  -> s+25200]
+      // Second Week Bonus  +30% = 1,300 HOT  = 1 ETH       [blocks: s+25201 -> s+50400]
+      // Third Week Bonus   +25% = 1,250 HOT  = 1 ETH       [blocks: s+50401 -> s+75600]
+      // Final Week Bonus   +15% = 1,150 HOT  = 1 ETH       [blocks: s+75601 -> endblock]
+      if (block.number >= fundingStartBlock && block.number <= fundingStartBlock+3600) { // First Day Bonus    +50% = 1,500 HOT  = 1 ETH  [blocks: start -> s+24]
         tokensPerEthPrice=1500;
-      } else if (block.number >= fundingStartBlock+3601 && block.number <= fundingStartBlock+25200) { // First Week Bonus   +40% = 1,400 EBET  = 1 ETH  [blocks: s+25 -> s+45]
+      } else if (block.number >= fundingStartBlock+3601 && block.number <= fundingStartBlock+25200) { // First Week Bonus   +40% = 1,400 HOT  = 1 ETH  [blocks: s+25 -> s+45]
         tokensPerEthPrice=1400;
-      } else if (block.number >= fundingStartBlock+25201 && block.number <= fundingStartBlock+50400) { // Second Week Bonus  +30% = 1,300 EBET  = 1 ETH  [blocks: s+46 -> s+65]
+      } else if (block.number >= fundingStartBlock+25201 && block.number <= fundingStartBlock+50400) { // Second Week Bonus  +30% = 1,300 HOT  = 1 ETH  [blocks: s+46 -> s+65]
         tokensPerEthPrice=1300;
-      } else if (block.number >= fundingStartBlock+50401 && block.number <= fundingStartBlock+75600) { // Third Week Bonus   +25% = 1,250 EBET  = 1 ETH  [blocks: s+66 -> s+85]
+      } else if (block.number >= fundingStartBlock+50401 && block.number <= fundingStartBlock+75600) { // Third Week Bonus   +25% = 1,250 HOT  = 1 ETH  [blocks: s+66 -> s+85]
         tokensPerEthPrice=1250;
-      } else if (block.number >= fundingStartBlock+75601 && block.number <= fundingEndBlock) { // Final Week Bonus   +15% = 1,150 EBET  = 1 ETH  [blocks: s+86 -> endBlock]
+      } else if (block.number >= fundingStartBlock+75601 && block.number <= fundingEndBlock) { // Final Week Bonus   +15% = 1,150 HOT  = 1 ETH  [blocks: s+86 -> endBlock]
         tokensPerEthPrice=1150;
       }
     }
@@ -173,10 +129,14 @@ contract EBETCrowdsale is owned, safeMath {
     // default payable function when sending ether to this contract
     function () payable {
       require(msg.data.length == 0);
-      BuyEBETtokens();
+      BuyHOTtokens();
     }
 
-    function BuyEBETtokens() payable {
+    function getBlockNumber() constant returns (uint) {
+        return block.number;
+    }
+
+    function BuyHOTtokens() payable {
       // 0. conditions (length, crowdsale setup, zero check, exceed funding contrib check, contract valid check, within funding block range check, balance overflow check etc)
       require(!(msg.value == 0)
       && (isCrowdSaleSetup)
@@ -189,15 +149,15 @@ contract EBETCrowdsale is owned, safeMath {
 
       // 2. effects
       setPrice();
-      amountRaisedInWei               = safeAdd(amountRaisedInWei,msg.value);
-      rewardTransferAmount            = safeDiv(safeMul(msg.value,tokensPerEthPrice),10000000000000000);
+      amountRaisedInWei               = amountRaisedInWei.add(msg.value);
+      rewardTransferAmount            = msg.value.mul(tokensPerEthPrice).div(10000000000000000);
 
       // 3. interaction
-      tokensRemaining                 = safeSub(tokensRemaining, safeDiv(rewardTransferAmount,100));  // will cause throw if attempt to purchase over the token limit in one tx or at all once limit reached
+      tokensRemaining                 = tokensRemaining.sub(rewardTransferAmount.div(100));  // will cause throw if attempt to purchase over the token limit in one tx or at all once limit reached
       tokenReward.transfer(msg.sender, rewardTransferAmount);
 
       // 4. events
-      fundValue[msg.sender]           = safeAdd(fundValue[msg.sender], msg.value);
+      fundValue[msg.sender]           = fundValue[msg.sender].add(msg.value);
       Transfer(this, msg.sender, msg.value);
       Buy(msg.sender, msg.value, rewardTransferAmount);
     }
@@ -228,8 +188,8 @@ contract EBETCrowdsale is owned, safeMath {
       } else if ((amountRaisedInWei >= fundingMinCapInWei) && (tokensRemaining == 0)) { // ICO ended, all tokens gone
           areFundsReleasedToBeneficiary = true;
           isCrowdSaleClosed = true;
-          CurrentStatus = "Successful (EBET >= Hardcap)!";
-          return "Successful (EBET >= Hardcap)!";
+          CurrentStatus = "Successful (HOT >= Hardcap)!";
+          return "Successful (HOT >= Hardcap)!";
       } else if ((amountRaisedInWei >= fundingMinCapInWei) && (block.number > fundingEndBlock) && (tokensRemaining > 0)) { // ICO ended, over softcap!
           areFundsReleasedToBeneficiary = true;
           isCrowdSaleClosed = true;
@@ -244,14 +204,14 @@ contract EBETCrowdsale is owned, safeMath {
       setPrice();
     }
 
-    function refund() { // any contributor can call this to have their Eth returned. user's purchased EBET tokens are burned prior refund of Eth.
+    function refund() { // any contributor can call this to have their Eth returned. user's purchased HOT tokens are burned prior refund of Eth.
       //require minCap not reached
       require ((amountRaisedInWei < fundingMinCapInWei)
       && (isCrowdSaleClosed)
       && (block.number > fundingEndBlock)
       && (fundValue[msg.sender] > 0));
 
-      //burn user's token EBET token balance, refund Eth sent
+      //burn user's token HOT token balance, refund Eth sent
       uint256 ethRefund = fundValue[msg.sender];
       balancesArray[msg.sender] = 0;
       fundValue[msg.sender] = 0;
