@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
-import "./Owned.sol";
-import "./SafeMath.sol";
-import "./StandardToken.sol";
+import "./lib/Ownable.sol";
+import "./lib/SafeMath.sol";
+import "./lib/PausableToken.sol";
 // **-----------------------------------------------
 // EthBet.io Token sale contract
 // Final revision 16a
@@ -20,11 +20,11 @@ import "./StandardToken.sol";
 
 
 
-contract HotCrowdsale is Owned {
+contract HotCrowdsale is Ownable {
   using SafeMath for uint256;
   // owner/admin & token reward
   address        public admin                     = owner;   // admin address
-  StandardToken  public tokenReward;                          // address of the token used as reward
+  PausableToken  public tokenReward;                         // address of the token used as reward
 
   // deployment variables for static supply sale
   uint256 public initialSupply;
@@ -40,8 +40,8 @@ contract HotCrowdsale is Owned {
 
   // loop control, ICO startup and limiters
   string  public CurrentStatus                   = "";        // current crowdsale status
-  uint256 public fundingStartBlock;                           // crowdsale start block#
-  uint256 public fundingEndBlock;                             // crowdsale end block#
+  uint256 public fundingStartTime;                           // crowdsale start block#
+  uint256 public fundingEndTime;                             // crowdsale end block#
   bool    public isCrowdSaleClosed               = false;     // crowdsale completion boolean
   bool    public areFundsReleasedToBeneficiary   = false;     // boolean for founder to receive Eth or not
   bool    public isCrowdSaleSetup                = false;     // boolean for crowdsale setup
@@ -71,12 +71,12 @@ contract HotCrowdsale is Owned {
   }
 
   // setup the CrowdSale parameters
-  function SetupCrowdsale(uint256 _fundingStartBlock, uint256 _fundingEndBlock) onlyOwner returns (bytes32 response) {
+  function SetupCrowdsale(uint256 _fundingStartTime, uint256 _fundingEndTime) onlyOwner returns (bytes32 response) {
       if ((msg.sender == admin)
       && (!(isCrowdSaleSetup))
       && (!(beneficiaryWallet > 0))){
           // init addresses
-          tokenReward                             = StandardToken(0x1260d3186Db36A0eB013063c5913680fa5a93630);  // Ropsten: 0xec155d80c7400484fb2d3732fa2aa779348f52e4 Kovan: 0xc35e495b3de0182DB3126e74b584B745839692aB
+          tokenReward                             = PausableToken(0x1260d3186Db36A0eB013063c5913680fa5a93630);  // Ropsten: 0xec155d80c7400484fb2d3732fa2aa779348f52e4 Kovan: 0xc35e495b3de0182DB3126e74b584B745839692aB
           beneficiaryWallet                       = 0xafE0e12d44486365e75708818dcA5558d29beA7D;   // mainnet is 0x00F959866E977698D14a36eB332686304a4d6AbA //testnet = 0xDe6BE2434E8eD8F74C8392A9eB6B6F7D63DDd3D7
           tokensPerEthPrice                       = 1500;                                         // set day1 initial value floating priceVar 1,500 tokens per Eth
 
@@ -88,8 +88,8 @@ contract HotCrowdsale is Owned {
           initialSupply                           = 1000000000;                                      //   10 million * 2 decimal = 1000000000
           tokensRemaining                         = initialSupply.div(100);
 
-          fundingStartBlock                       = _fundingStartBlock;
-          fundingEndBlock                         = _fundingEndBlock;
+          fundingStartTime                       = _fundingStartTime;
+          fundingEndTime                         = _fundingEndTime;
 
           // configure crowdsale
           isCrowdSaleSetup                        = true;
@@ -113,15 +113,15 @@ contract HotCrowdsale is Owned {
       // Second Week Bonus  +30% = 1,300 HOT  = 1 ETH       [blocks: s+25201 -> s+50400]
       // Third Week Bonus   +25% = 1,250 HOT  = 1 ETH       [blocks: s+50401 -> s+75600]
       // Final Week Bonus   +15% = 1,150 HOT  = 1 ETH       [blocks: s+75601 -> endblock]
-      if (block.number >= fundingStartBlock && block.number <= fundingStartBlock+3600) { // First Day Bonus    +50% = 1,500 HOT  = 1 ETH  [blocks: start -> s+24]
+      if (block.timestamp >= fundingStartTime && block.timestamp <= fundingStartTime+3600) { // First Day Bonus    +50% = 1,500 HOT  = 1 ETH  [blocks: start -> s+24]
         tokensPerEthPrice=1500;
-      } else if (block.number >= fundingStartBlock+3601 && block.number <= fundingStartBlock+25200) { // First Week Bonus   +40% = 1,400 HOT  = 1 ETH  [blocks: s+25 -> s+45]
+      } else if (block.timestamp >= fundingStartTime+3601 && block.timestamp <= fundingStartTime+25200) { // First Week Bonus   +40% = 1,400 HOT  = 1 ETH  [blocks: s+25 -> s+45]
         tokensPerEthPrice=1400;
-      } else if (block.number >= fundingStartBlock+25201 && block.number <= fundingStartBlock+50400) { // Second Week Bonus  +30% = 1,300 HOT  = 1 ETH  [blocks: s+46 -> s+65]
+      } else if (block.timestamp >= fundingStartTime+25201 && block.timestamp <= fundingStartTime+50400) { // Second Week Bonus  +30% = 1,300 HOT  = 1 ETH  [blocks: s+46 -> s+65]
         tokensPerEthPrice=1300;
-      } else if (block.number >= fundingStartBlock+50401 && block.number <= fundingStartBlock+75600) { // Third Week Bonus   +25% = 1,250 HOT  = 1 ETH  [blocks: s+66 -> s+85]
+      } else if (block.timestamp >= fundingStartTime+50401 && block.timestamp <= fundingStartTime+75600) { // Third Week Bonus   +25% = 1,250 HOT  = 1 ETH  [blocks: s+66 -> s+85]
         tokensPerEthPrice=1250;
-      } else if (block.number >= fundingStartBlock+75601 && block.number <= fundingEndBlock) { // Final Week Bonus   +15% = 1,150 HOT  = 1 ETH  [blocks: s+86 -> endBlock]
+      } else if (block.timestamp >= fundingStartTime+75601 && block.timestamp <= fundingEndTime) { // Final Week Bonus   +15% = 1,150 HOT  = 1 ETH  [blocks: s+86 -> endBlock]
         tokensPerEthPrice=1150;
       }
     }
@@ -133,15 +133,15 @@ contract HotCrowdsale is Owned {
     }
 
     function getBlockNumber() constant returns (uint) {
-        return block.number;
+        return block.timestamp;
     }
 
     function BuyHOTtokens() payable {
       // 0. conditions (length, crowdsale setup, zero check, exceed funding contrib check, contract valid check, within funding block range check, balance overflow check etc)
       require(!(msg.value == 0)
       && (isCrowdSaleSetup)
-      && (block.number >= fundingStartBlock)
-      && (block.number <= fundingEndBlock)
+      && (block.timestamp >= fundingStartTime)
+      && (block.timestamp <= fundingEndTime)
       && (tokensRemaining > 0));
 
       // 1. vars
@@ -170,17 +170,17 @@ contract HotCrowdsale is Owned {
     function checkGoalReached() onlyOwner returns (bytes32 response) { // return crowdfund status to owner for each result case, update public constant
       // update state & status variables
       require (isCrowdSaleSetup);
-      if ((amountRaisedInWei < fundingMinCapInWei) && (block.number <= fundingEndBlock && block.number >= fundingStartBlock)) { // ICO in progress, under softcap
+      if ((amountRaisedInWei < fundingMinCapInWei) && (block.timestamp <= fundingEndTime && block.timestamp >= fundingStartTime)) { // ICO in progress, under softcap
         areFundsReleasedToBeneficiary = false;
         isCrowdSaleClosed = false;
         CurrentStatus = "In progress (Eth < Softcap)";
         return "In progress (Eth < Softcap)";
-      } else if ((amountRaisedInWei < fundingMinCapInWei) && (block.number < fundingStartBlock)) { // ICO has not started
+      } else if ((amountRaisedInWei < fundingMinCapInWei) && (block.timestamp < fundingStartTime)) { // ICO has not started
         areFundsReleasedToBeneficiary = false;
         isCrowdSaleClosed = false;
         CurrentStatus = "Crowdsale is setup";
         return "Crowdsale is setup";
-      } else if ((amountRaisedInWei < fundingMinCapInWei) && (block.number > fundingEndBlock)) { // ICO ended, under softcap
+      } else if ((amountRaisedInWei < fundingMinCapInWei) && (block.timestamp > fundingEndTime)) { // ICO ended, under softcap
         areFundsReleasedToBeneficiary = false;
         isCrowdSaleClosed = true;
         CurrentStatus = "Unsuccessful (Eth < Softcap)";
@@ -190,12 +190,12 @@ contract HotCrowdsale is Owned {
           isCrowdSaleClosed = true;
           CurrentStatus = "Successful (HOT >= Hardcap)!";
           return "Successful (HOT >= Hardcap)!";
-      } else if ((amountRaisedInWei >= fundingMinCapInWei) && (block.number > fundingEndBlock) && (tokensRemaining > 0)) { // ICO ended, over softcap!
+      } else if ((amountRaisedInWei >= fundingMinCapInWei) && (block.timestamp > fundingEndTime) && (tokensRemaining > 0)) { // ICO ended, over softcap!
           areFundsReleasedToBeneficiary = true;
           isCrowdSaleClosed = true;
           CurrentStatus = "Successful (Eth >= Softcap)!";
           return "Successful (Eth >= Softcap)!";
-      } else if ((amountRaisedInWei >= fundingMinCapInWei) && (tokensRemaining > 0) && (block.number <= fundingEndBlock)) { // ICO in progress, over softcap!
+      } else if ((amountRaisedInWei >= fundingMinCapInWei) && (tokensRemaining > 0) && (block.timestamp <= fundingEndTime)) { // ICO in progress, over softcap!
         areFundsReleasedToBeneficiary = true;
         isCrowdSaleClosed = false;
         CurrentStatus = "In progress (Eth >= Softcap)!";
@@ -208,7 +208,7 @@ contract HotCrowdsale is Owned {
       //require minCap not reached
       require ((amountRaisedInWei < fundingMinCapInWei)
       && (isCrowdSaleClosed)
-      && (block.number > fundingEndBlock)
+      && (block.timestamp > fundingEndTime)
       && (fundValue[msg.sender] > 0));
 
       //burn user's token HOT token balance, refund Eth sent
