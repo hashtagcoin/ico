@@ -22,13 +22,12 @@ import "./lib/PausableToken.sol";
 
 contract HotCrowdsale is Ownable {
   using SafeMath for uint256;
-  // owner/admin & token reward
-  address        public admin                     = owner;   // admin address
   PausableToken  public tokenReward;                         // address of the token used as reward
 
   // deployment variables for static supply sale
   uint256 public initialSupply;
   uint256 public tokensRemaining;
+  uint256 public decimals;
 
   // multi-sig addresses and price variable
   address public beneficiaryWallet;                           // beneficiaryMultiSig (founder group) or wallet account, live is 0x00F959866E977698D14a36eB332686304a4d6AbA
@@ -55,38 +54,47 @@ contract HotCrowdsale is Ownable {
   mapping(address => uint256) fundValue;
 
   // default function, map admin
-  function HotTokenCrowdsale() onlyOwner {
-    admin = msg.sender;
+  function HotTokenCrowdsale() onlyOwner public {
     CurrentStatus = "Crowdsale deployed to chain";
+  }
+  
+  // convert tokens to decimals
+  function toPony(uint256 amount) public constant returns (uint256) {
+      return amount.mul(10**decimals);
+  }
+  
+  // convert tokens to whole
+  function toHot(uint256 amount) public constant returns (uint256) {
+      return amount.div(10**decimals);
   }
 
   // total number of tokens initially
-  function initialHOTSupply() constant returns (uint256 tokenTotalSupply) {
+  function initialHOTSupply() public constant returns (uint256 tokenTotalSupply) {
       tokenTotalSupply = initialSupply.div(100);
   }
 
   // remaining number of tokens
-  function remainingSupply() constant returns (uint256 tokensLeft) {
+  function remainingSupply() public constant returns (uint256 tokensLeft) {
       tokensLeft = tokensRemaining;
   }
 
   // setup the CrowdSale parameters
-  function SetupCrowdsale(uint256 _fundingStartTime, uint256 _fundingEndTime) onlyOwner returns (bytes32 response) {
-      if ((msg.sender == admin)
-      && (!(isCrowdSaleSetup))
+  function setupCrowdsale(uint256 _fundingStartTime, uint256 _fundingEndTime) public onlyOwner returns (bytes32 response) {
+      if ((!(isCrowdSaleSetup))
       && (!(beneficiaryWallet > 0))){
           // init addresses
-          tokenReward                             = PausableToken(0x1260d3186Db36A0eB013063c5913680fa5a93630);  // Ropsten: 0xec155d80c7400484fb2d3732fa2aa779348f52e4 Kovan: 0xc35e495b3de0182DB3126e74b584B745839692aB
+          tokenReward                             = PausableToken(0xD0d978325B4DB7549C8770B621a72c5061Dc0e00);  // Ropsten: 0xec155d80c7400484fb2d3732fa2aa779348f52e4 Kovan: 0xc35e495b3de0182DB3126e74b584B745839692aB
           beneficiaryWallet                       = 0xafE0e12d44486365e75708818dcA5558d29beA7D;   // mainnet is 0x00F959866E977698D14a36eB332686304a4d6AbA //testnet = 0xDe6BE2434E8eD8F74C8392A9eB6B6F7D63DDd3D7
-          tokensPerEthPrice                       = 1500;                                         // set day1 initial value floating priceVar 1,500 tokens per Eth
+          tokensPerEthPrice                       = toPony(20000);                                         // set day1 initial value floating priceVar 1,500 tokens per Eth
 
           // funding targets
-          fundingMinCapInWei                      = 300000000000000000000;                          //300000000000000000000 =  300 Eth (min cap) - crowdsale is considered success after this value  //testnet 6000000000000000000 = 6Eth
+          fundingMinCapInWei                      = 500 ether;                          //500 Eth (min cap) - crowdsale is considered success after this value
 
           // update values
+          decimals                                = 18;
           amountRaisedInWei                       = 0;
-          initialSupply                           = 1000000000;                                      //   10 million * 2 decimal = 1000000000
-          tokensRemaining                         = initialSupply.div(100);
+          initialSupply                           = toPony(100000000);                  //   100 million * 18 decimal = 1000000000
+          tokensRemaining                         = initialSupply;
 
           fundingStartTime                       = _fundingStartTime;
           fundingEndTime                         = _fundingEndTime;
@@ -99,44 +107,44 @@ contract HotCrowdsale is Ownable {
           //gas reduction experiment
           setPrice();
           return "Crowdsale is setup";
-      } else if (msg.sender != admin) {
+      } else if (msg.sender != owner) {
           return "not authorized";
       } else  {
           return "campaign cannot be changed";
       }
     }
 
-    function setPrice() {
+    function setPrice() public {
       // Price configuration:
       // First Day Bonus    +50% = 1,500 HOT  = 1 ETH       [blocks: start -> s+3600]
       // First Week Bonus   +40% = 1,400 HOT  = 1 ETH       [blocks: s+3601  -> s+25200]
       // Second Week Bonus  +30% = 1,300 HOT  = 1 ETH       [blocks: s+25201 -> s+50400]
       // Third Week Bonus   +25% = 1,250 HOT  = 1 ETH       [blocks: s+50401 -> s+75600]
       // Final Week Bonus   +15% = 1,150 HOT  = 1 ETH       [blocks: s+75601 -> endblock]
-      if (block.timestamp >= fundingStartTime && block.timestamp <= fundingStartTime+3600) { // First Day Bonus    +50% = 1,500 HOT  = 1 ETH  [blocks: start -> s+24]
-        tokensPerEthPrice=1500;
-      } else if (block.timestamp >= fundingStartTime+3601 && block.timestamp <= fundingStartTime+25200) { // First Week Bonus   +40% = 1,400 HOT  = 1 ETH  [blocks: s+25 -> s+45]
-        tokensPerEthPrice=1400;
-      } else if (block.timestamp >= fundingStartTime+25201 && block.timestamp <= fundingStartTime+50400) { // Second Week Bonus  +30% = 1,300 HOT  = 1 ETH  [blocks: s+46 -> s+65]
-        tokensPerEthPrice=1300;
-      } else if (block.timestamp >= fundingStartTime+50401 && block.timestamp <= fundingStartTime+75600) { // Third Week Bonus   +25% = 1,250 HOT  = 1 ETH  [blocks: s+66 -> s+85]
-        tokensPerEthPrice=1250;
-      } else if (block.timestamp >= fundingStartTime+75601 && block.timestamp <= fundingEndTime) { // Final Week Bonus   +15% = 1,150 HOT  = 1 ETH  [blocks: s+86 -> endBlock]
-        tokensPerEthPrice=1150;
+      if (block.timestamp >= fundingStartTime && block.timestamp < fundingStartTime + 5 minutes) { // First Day Bonus    +50% = 1,500 HOT  = 1 ETH  [blocks: start -> s+24]
+        tokensPerEthPrice=toPony(20000);
+      } else if (block.timestamp >= fundingStartTime+5 minutes && block.timestamp < fundingStartTime+10 minutes) { // First Week Bonus   +40% = 1,400 HOT  = 1 ETH  [blocks: s+25 -> s+45]
+        tokensPerEthPrice=toPony(10000);
+      } else if (block.timestamp >= fundingStartTime+10 minutes && block.timestamp < fundingStartTime+15 minutes) { // Second Week Bonus  +30% = 1,300 HOT  = 1 ETH  [blocks: s+46 -> s+65]
+        tokensPerEthPrice=toPony(5000);
+      } else if (block.timestamp >= fundingStartTime+15 minutes && block.timestamp < fundingStartTime+20 minutes) { // Third Week Bonus   +25% = 1,250 HOT  = 1 ETH  [blocks: s+66 -> s+85]
+        tokensPerEthPrice=toPony(1250);
+      } else if (block.timestamp >= fundingStartTime+20 minutes && block.timestamp <=fundingEndTime) { // Final Week Bonus   +15% = 1,150 HOT  = 1 ETH  [blocks: s+86 -> endBlock]
+        tokensPerEthPrice=toPony(1150);
       }
     }
 
     // default payable function when sending ether to this contract
-    function () payable {
+    function () public payable {
       require(msg.data.length == 0);
       BuyHOTtokens();
     }
 
-    function getBlockNumber() constant returns (uint) {
+    function getBlockNumber() public constant returns (uint) {
         return block.timestamp;
     }
 
-    function BuyHOTtokens() payable {
+    function BuyHOTtokens() public payable {
       // 0. conditions (length, crowdsale setup, zero check, exceed funding contrib check, contract valid check, within funding block range check, balance overflow check etc)
       require(!(msg.value == 0)
       && (isCrowdSaleSetup)
@@ -150,10 +158,10 @@ contract HotCrowdsale is Ownable {
       // 2. effects
       setPrice();
       amountRaisedInWei               = amountRaisedInWei.add(msg.value);
-      rewardTransferAmount            = msg.value.mul(tokensPerEthPrice).div(10000000000000000);
+      rewardTransferAmount            = (msg.value.mul(tokensPerEthPrice)).div(10**18); //consider wei in msg.sender
 
       // 3. interaction
-      tokensRemaining                 = tokensRemaining.sub(rewardTransferAmount.div(100));  // will cause throw if attempt to purchase over the token limit in one tx or at all once limit reached
+      tokensRemaining                 = tokensRemaining.sub(rewardTransferAmount);  // will cause throw if attempt to purchase over the token limit in one tx or at all once limit reached
       tokenReward.transfer(msg.sender, rewardTransferAmount);
 
       // 4. events
@@ -162,12 +170,12 @@ contract HotCrowdsale is Ownable {
       Buy(msg.sender, msg.value, rewardTransferAmount);
     }
 
-    function beneficiaryMultiSigWithdraw(uint256 _amount) onlyOwner {
+    function beneficiaryMultiSigWithdraw(uint256 _amount) public onlyOwner {
       require(areFundsReleasedToBeneficiary && (amountRaisedInWei >= fundingMinCapInWei));
       beneficiaryWallet.transfer(_amount);
     }
 
-    function checkGoalReached() onlyOwner returns (bytes32 response) { // return crowdfund status to owner for each result case, update public constant
+    function checkGoalReached() public onlyOwner returns (bytes32 response) { // return crowdfund status to owner for each result case, update public constant
       // update state & status variables
       require (isCrowdSaleSetup);
       if ((amountRaisedInWei < fundingMinCapInWei) && (block.timestamp <= fundingEndTime && block.timestamp >= fundingStartTime)) { // ICO in progress, under softcap
@@ -204,8 +212,9 @@ contract HotCrowdsale is Ownable {
       setPrice();
     }
 
-    function refund() { // any contributor can call this to have their Eth returned. user's purchased HOT tokens are burned prior refund of Eth.
+    function refund() public { // any contributor can call this to have their Eth returned. user's purchased HOT tokens are burned prior refund of Eth.
       //require minCap not reached
+      
       require ((amountRaisedInWei < fundingMinCapInWei)
       && (isCrowdSaleClosed)
       && (block.timestamp > fundingEndTime)
@@ -220,5 +229,9 @@ contract HotCrowdsale is Ownable {
       //send Eth back, burn tokens
       msg.sender.transfer(ethRefund);
       Refund(msg.sender, ethRefund);
+    }
+    
+    function revertToOwner() public onlyOwner {
+        tokenReward.transfer(msg.sender, tokensRemaining);
     }
 }

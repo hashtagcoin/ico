@@ -13,13 +13,17 @@ contract Pausable is Ownable {
   event Unpause();
 
   bool public paused = false;
-
+  address public crowdsale;
+  
+  function setCrowdsale(address _crowdsale) onlyOwner public {
+      crowdsale=_crowdsale;
+  }
 
   /**
    * @dev Modifier to make a function callable only when the contract is not paused.
    */
   modifier whenNotPaused() {
-    require(!paused);
+    require(!paused || msg.sender == crowdsale);
     _;
   }
 
@@ -35,6 +39,7 @@ contract Pausable is Ownable {
    * @dev called by the owner to pause, triggers stopped state
    */
   function pause() onlyOwner whenNotPaused public {
+    require(msg.sender != address(0));
     paused = true;
     Pause();
   }
@@ -43,6 +48,7 @@ contract Pausable is Ownable {
    * @dev called by the owner to unpause, returns to normal state
    */
   function unpause() onlyOwner whenPaused public {
+    require(msg.sender != address(0));
     paused = false;
     Unpause();
   }
