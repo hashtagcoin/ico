@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 import "./lib/Ownable.sol";
 import "./lib/SafeMath.sol";
-import "./lib/PausableToken.sol";
+// import "./lib/PausableToken.sol";
 // **-----------------------------------------------
 // EthBet.io Token sale contract
 // Final revision 16a
@@ -18,7 +18,12 @@ import "./lib/PausableToken.sol";
 // Final Week Bonus   +15% = 1,150 HOT  = 1 ETH       [blocks: s+75601 -> end]
 // -------------------------------------------------
 
-
+contract PausableToken is Ownable {
+  using SafeMath for uint256;
+  function balanceOf(address who) public constant returns (uint256);
+  function transfer(address to, uint256 value) public returns (bool);
+  event Transfer(address indexed from, address indexed to, uint256 value);
+}
 
 contract HotCrowdsale is Ownable {
   using SafeMath for uint256;
@@ -83,12 +88,12 @@ contract HotCrowdsale is Ownable {
       if ((!(isCrowdSaleSetup))
       && (!(beneficiaryWallet > 0))){
           // init addresses
-          tokenReward                             = PausableToken(0xD0d978325B4DB7549C8770B621a72c5061Dc0e00);  // Ropsten: 0xec155d80c7400484fb2d3732fa2aa779348f52e4 Kovan: 0xc35e495b3de0182DB3126e74b584B745839692aB
+          tokenReward                             = PausableToken(0x127db7c9D848DbDB1635861Af233012f7BaEcAAe);  // Ropsten: 0xec155d80c7400484fb2d3732fa2aa779348f52e4 Kovan: 0xc35e495b3de0182DB3126e74b584B745839692aB
           beneficiaryWallet                       = 0xafE0e12d44486365e75708818dcA5558d29beA7D;   // mainnet is 0x00F959866E977698D14a36eB332686304a4d6AbA //testnet = 0xDe6BE2434E8eD8F74C8392A9eB6B6F7D63DDd3D7
           tokensPerEthPrice                       = toPony(20000);                                         // set day1 initial value floating priceVar 1,500 tokens per Eth
 
           // funding targets
-          fundingMinCapInWei                      = 500 ether;                          //500 Eth (min cap) - crowdsale is considered success after this value
+          fundingMinCapInWei                      = 1 ether;                          //500 Eth (min cap) - crowdsale is considered success after this value
 
           // update values
           decimals                                = 18;
@@ -158,7 +163,7 @@ contract HotCrowdsale is Ownable {
       // 2. effects
       setPrice();
       amountRaisedInWei               = amountRaisedInWei.add(msg.value);
-      rewardTransferAmount            = (msg.value.mul(tokensPerEthPrice)).div(10**18); //consider wei in msg.sender
+      rewardTransferAmount            = (msg.value.mul(tokensPerEthPrice)).div(10**18); //
 
       // 3. interaction
       tokensRemaining                 = tokensRemaining.sub(rewardTransferAmount);  // will cause throw if attempt to purchase over the token limit in one tx or at all once limit reached
@@ -171,6 +176,7 @@ contract HotCrowdsale is Ownable {
     }
 
     function beneficiaryMultiSigWithdraw(uint256 _amount) public onlyOwner {
+      checkGoalReached();
       require(areFundsReleasedToBeneficiary && (amountRaisedInWei >= fundingMinCapInWei));
       beneficiaryWallet.transfer(_amount);
     }
