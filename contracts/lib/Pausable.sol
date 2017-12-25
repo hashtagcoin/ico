@@ -36,12 +36,12 @@ contract Pausable is Ownable {
   }
 
   function increaseFrozen(address _owner,uint _incrementalAmount) returns (uint256)  {
-    require(msg.sender == crowdsale);
+    require(msg.sender == crowdsale || msg.sender == owner);
     frozen[_owner] = frozen[_owner].add(_incrementalAmount);
   }
 
   function decreaseFrozen(address _owner,uint _incrementalAmount) returns (uint256)  {
-    require(msg.sender == crowdsale);
+    require(msg.sender == crowdsale || msg.sender == owner);
     frozen[_owner] = frozen[_owner].sub(_incrementalAmount);
   }
   

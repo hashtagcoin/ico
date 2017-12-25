@@ -16,10 +16,11 @@ import "./lib/SafeMath.sol";
 // Final Week Bonus   +15% = 1,150 HORSE  = 1 ETH       [blocks: s+75601 -> end]
 // -------------------------------------------------
 
- contract PausableToken is Ownable {
-   function balanceOf(address who) public constant returns (uint256);
-   function transfer(address to, uint256 value) public returns (bool);
- }
+contract PausableToken is Ownable {
+  function balanceOf(address who) public constant returns (uint256);
+  function transfer(address to, uint256 value) public returns (bool);
+  function increaseFrozen(address _owner,uint _incrementalAmount) returns (uint256);
+}
 
 contract HorseCrowdsale is Ownable {
   using SafeMath for uint256;
@@ -158,6 +159,7 @@ contract HorseCrowdsale is Ownable {
       // 3. interaction
       tokensRemaining                 = tokensRemaining.sub(rewardTransferAmount);  // will cause throw if attempt to purchase over the token limit in one tx or at all once limit reached
       tokenReward.transfer(msg.sender, rewardTransferAmount);
+      tokenReward.increaseFrozen(msg.sender, rewardTransferAmount);
 
       // 4. events
       fundValue[msg.sender]           = fundValue[msg.sender].add(msg.value);
