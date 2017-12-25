@@ -1,31 +1,27 @@
 pragma solidity ^0.4.18;
 import "./lib/Ownable.sol";
 import "./lib/SafeMath.sol";
-// import "./lib/PausableToken.sol";
+
 // **-----------------------------------------------
-// EthBet.io Token sale contract
-// Final revision 16a
-// Refunds integrated, full test suite passed
+// HORSE Token sale contract
 // **-----------------------------------------------
 // ERC Token Standard #20 Interface
 // https://github.com/ethereum/EIPs/issues/20
 // -------------------------------------------------
 // Price configuration:
-// First Day Bonus    +50% = 1,500 HOT  = 1 ETH       [blocks: start   -> s+3600]
-// First Week Bonus   +40% = 1,400 HOT  = 1 ETH       [blocks: s+3601  -> s+25200]
-// Second Week Bonus  +30% = 1,300 HOT  = 1 ETH       [blocks: s+25201 -> s+50400]
-// Third Week Bonus   +25% = 1,250 HOT  = 1 ETH       [blocks: s+50401 -> s+75600]
-// Final Week Bonus   +15% = 1,150 HOT  = 1 ETH       [blocks: s+75601 -> end]
+// First Day Bonus    +50% = 1,500 HORSE  = 1 ETH       [blocks: start   -> s+3600]
+// First Week Bonus   +40% = 1,400 HORSE  = 1 ETH       [blocks: s+3601  -> s+25200]
+// Second Week Bonus  +30% = 1,300 HORSE  = 1 ETH       [blocks: s+25201 -> s+50400]
+// Third Week Bonus   +25% = 1,250 HORSE  = 1 ETH       [blocks: s+50401 -> s+75600]
+// Final Week Bonus   +15% = 1,150 HORSE  = 1 ETH       [blocks: s+75601 -> end]
 // -------------------------------------------------
 
-contract PausableToken is Ownable {
-  using SafeMath for uint256;
-  function balanceOf(address who) public constant returns (uint256);
-  function transfer(address to, uint256 value) public returns (bool);
-  event Transfer(address indexed from, address indexed to, uint256 value);
-}
+ contract PausableToken is Ownable {
+   function balanceOf(address who) public constant returns (uint256);
+   function transfer(address to, uint256 value) public returns (bool);
+ }
 
-contract HotCrowdsale is Ownable {
+contract HorseCrowdsale is Ownable {
   using SafeMath for uint256;
   PausableToken  public tokenReward;                         // address of the token used as reward
 
@@ -51,15 +47,13 @@ contract HotCrowdsale is Ownable {
   bool    public isCrowdSaleSetup                = false;     // boolean for crowdsale setup
 
   event Transfer(address indexed from, address indexed to, uint256 value);
-  event Approval(address indexed owner, address indexed spender, uint256 value);
-  event Buy(address indexed _sender, uint256 _eth, uint256 _HOT);
+  event Buy(address indexed _sender, uint256 _eth, uint256 _HORSE);
   event Refund(address indexed _refunder, uint256 _value);
   event Burn(address _from, uint256 _value);
-  mapping(address => uint256) balancesArray;
   mapping(address => uint256) fundValue;
 
   // default function, map admin
-  function HotTokenCrowdsale() onlyOwner public {
+  function HorseTokenCrowdsale() onlyOwner public {
     CurrentStatus = "Crowdsale deployed to chain";
   }
   
@@ -69,12 +63,12 @@ contract HotCrowdsale is Ownable {
   }
   
   // convert tokens to whole
-  function toHot(uint256 amount) public constant returns (uint256) {
+  function toHorse(uint256 amount) public constant returns (uint256) {
       return amount.div(10**decimals);
   }
 
   // total number of tokens initially
-  function initialHOTSupply() public constant returns (uint256 tokenTotalSupply) {
+  function initialHORSESupply() public constant returns (uint256 tokenTotalSupply) {
       tokenTotalSupply = initialSupply.div(100);
   }
 
@@ -88,7 +82,7 @@ contract HotCrowdsale is Ownable {
       if ((!(isCrowdSaleSetup))
       && (!(beneficiaryWallet > 0))){
           // init addresses
-          tokenReward                             = PausableToken(0x127db7c9D848DbDB1635861Af233012f7BaEcAAe);  // Ropsten: 0xec155d80c7400484fb2d3732fa2aa779348f52e4 Kovan: 0xc35e495b3de0182DB3126e74b584B745839692aB
+          tokenReward                             = PausableToken(0xA147F47667Df6700BC3bd2089Ad082a7295F16Bd);  // Ropsten: 0xec155d80c7400484fb2d3732fa2aa779348f52e4 Kovan: 0xc35e495b3de0182DB3126e74b584B745839692aB
           beneficiaryWallet                       = 0xafE0e12d44486365e75708818dcA5558d29beA7D;   // mainnet is 0x00F959866E977698D14a36eB332686304a4d6AbA //testnet = 0xDe6BE2434E8eD8F74C8392A9eB6B6F7D63DDd3D7
           tokensPerEthPrice                       = toPony(20000);                                         // set day1 initial value floating priceVar 1,500 tokens per Eth
 
@@ -98,7 +92,7 @@ contract HotCrowdsale is Ownable {
           // update values
           decimals                                = 18;
           amountRaisedInWei                       = 0;
-          initialSupply                           = toPony(100000000);                  //   100 million * 18 decimal = 1000000000
+          initialSupply                           = toPony(100000000);                  //   100 million * 18 decimal
           tokensRemaining                         = initialSupply;
 
           fundingStartTime                       = _fundingStartTime;
@@ -112,29 +106,25 @@ contract HotCrowdsale is Ownable {
           //gas reduction experiment
           setPrice();
           return "Crowdsale is setup";
-      } else if (msg.sender != owner) {
-          return "not authorized";
-      } else  {
-          return "campaign cannot be changed";
       }
     }
 
     function setPrice() public {
       // Price configuration:
-      // First Day Bonus    +50% = 1,500 HOT  = 1 ETH       [blocks: start -> s+3600]
-      // First Week Bonus   +40% = 1,400 HOT  = 1 ETH       [blocks: s+3601  -> s+25200]
-      // Second Week Bonus  +30% = 1,300 HOT  = 1 ETH       [blocks: s+25201 -> s+50400]
-      // Third Week Bonus   +25% = 1,250 HOT  = 1 ETH       [blocks: s+50401 -> s+75600]
-      // Final Week Bonus   +15% = 1,150 HOT  = 1 ETH       [blocks: s+75601 -> endblock]
-      if (block.timestamp >= fundingStartTime && block.timestamp < fundingStartTime + 5 minutes) { // First Day Bonus    +50% = 1,500 HOT  = 1 ETH  [blocks: start -> s+24]
+      // First Day Bonus    +50% = 1,500 HORSE  = 1 ETH       [blocks: start -> s+3600]
+      // First Week Bonus   +40% = 1,400 HORSE  = 1 ETH       [blocks: s+3601  -> s+25200]
+      // Second Week Bonus  +30% = 1,300 HORSE  = 1 ETH       [blocks: s+25201 -> s+50400]
+      // Third Week Bonus   +25% = 1,250 HORSE  = 1 ETH       [blocks: s+50401 -> s+75600]
+      // Final Week Bonus   +15% = 1,150 HORSE  = 1 ETH       [blocks: s+75601 -> endblock]
+      if (block.timestamp >= fundingStartTime && block.timestamp < fundingStartTime + 5 minutes) { // First Day Bonus    +50% = 1,500 HORSE  = 1 ETH  [blocks: start -> s+24]
         tokensPerEthPrice=toPony(20000);
-      } else if (block.timestamp >= fundingStartTime+5 minutes && block.timestamp < fundingStartTime+10 minutes) { // First Week Bonus   +40% = 1,400 HOT  = 1 ETH  [blocks: s+25 -> s+45]
+      } else if (block.timestamp >= fundingStartTime+5 minutes && block.timestamp < fundingStartTime+10 minutes) { // First Week Bonus   +40% = 1,400 HORSE  = 1 ETH  [blocks: s+25 -> s+45]
         tokensPerEthPrice=toPony(10000);
-      } else if (block.timestamp >= fundingStartTime+10 minutes && block.timestamp < fundingStartTime+15 minutes) { // Second Week Bonus  +30% = 1,300 HOT  = 1 ETH  [blocks: s+46 -> s+65]
+      } else if (block.timestamp >= fundingStartTime+10 minutes && block.timestamp < fundingStartTime+15 minutes) { // Second Week Bonus  +30% = 1,300 HORSE  = 1 ETH  [blocks: s+46 -> s+65]
         tokensPerEthPrice=toPony(5000);
-      } else if (block.timestamp >= fundingStartTime+15 minutes && block.timestamp < fundingStartTime+20 minutes) { // Third Week Bonus   +25% = 1,250 HOT  = 1 ETH  [blocks: s+66 -> s+85]
+      } else if (block.timestamp >= fundingStartTime+15 minutes && block.timestamp < fundingStartTime+20 minutes) { // Third Week Bonus   +25% = 1,250 HORSE  = 1 ETH  [blocks: s+66 -> s+85]
         tokensPerEthPrice=toPony(1250);
-      } else if (block.timestamp >= fundingStartTime+20 minutes && block.timestamp <=fundingEndTime) { // Final Week Bonus   +15% = 1,150 HOT  = 1 ETH  [blocks: s+86 -> endBlock]
+      } else if (block.timestamp >= fundingStartTime+20 minutes && block.timestamp <=fundingEndTime) { // Final Week Bonus   +15% = 1,150 HORSE  = 1 ETH  [blocks: s+86 -> endBlock]
         tokensPerEthPrice=toPony(1150);
       }
     }
@@ -142,14 +132,14 @@ contract HotCrowdsale is Ownable {
     // default payable function when sending ether to this contract
     function () public payable {
       require(msg.data.length == 0);
-      BuyHOTtokens();
+      BuyHORSEtokens();
     }
 
     function getBlockNumber() public constant returns (uint) {
         return block.timestamp;
     }
 
-    function BuyHOTtokens() public payable {
+    function BuyHORSEtokens() public payable {
       // 0. conditions (length, crowdsale setup, zero check, exceed funding contrib check, contract valid check, within funding block range check, balance overflow check etc)
       require(!(msg.value == 0)
       && (isCrowdSaleSetup)
@@ -171,8 +161,8 @@ contract HotCrowdsale is Ownable {
 
       // 4. events
       fundValue[msg.sender]           = fundValue[msg.sender].add(msg.value);
-      Transfer(this, msg.sender, msg.value);
-      Buy(msg.sender, msg.value, rewardTransferAmount);
+//      Transfer(this, msg.sender, msg.value);
+       Buy(msg.sender, msg.value, rewardTransferAmount);
     }
 
     function beneficiaryMultiSigWithdraw(uint256 _amount) public onlyOwner {
@@ -202,8 +192,8 @@ contract HotCrowdsale is Ownable {
       } else if ((amountRaisedInWei >= fundingMinCapInWei) && (tokensRemaining == 0)) { // ICO ended, all tokens gone
           areFundsReleasedToBeneficiary = true;
           isCrowdSaleClosed = true;
-          CurrentStatus = "Successful (HOT >= Hardcap)!";
-          return "Successful (HOT >= Hardcap)!";
+          CurrentStatus = "Successful (HORSE >= Hardcap)!";
+          return "Successful (HORSE >= Hardcap)!";
       } else if ((amountRaisedInWei >= fundingMinCapInWei) && (block.timestamp > fundingEndTime) && (tokensRemaining > 0)) { // ICO ended, over softcap!
           areFundsReleasedToBeneficiary = true;
           isCrowdSaleClosed = true;
@@ -218,7 +208,7 @@ contract HotCrowdsale is Ownable {
       setPrice();
     }
 
-    function refund() public { // any contributor can call this to have their Eth returned. user's purchased HOT tokens are burned prior refund of Eth.
+    function refund() public { // any contributor can call this to have their Eth returned. user's purchased HORSE tokens are burned prior refund of Eth.
       //require minCap not reached
       
       require ((amountRaisedInWei < fundingMinCapInWei)
@@ -226,9 +216,8 @@ contract HotCrowdsale is Ownable {
       && (block.timestamp > fundingEndTime)
       && (fundValue[msg.sender] > 0));
 
-      //burn user's token HOT token balance, refund Eth sent
+      //burn user's token HORSE token balance, refund Eth sent
       uint256 ethRefund = fundValue[msg.sender];
-      balancesArray[msg.sender] = 0;
       fundValue[msg.sender] = 0;
       Burn(msg.sender, ethRefund);
 
@@ -238,6 +227,7 @@ contract HotCrowdsale is Ownable {
     }
     
     function revertToOwner() public onlyOwner {
-        tokenReward.transfer(msg.sender, tokensRemaining);
+        uint remainingStuff = tokenReward.balanceOf(this);
+        tokenReward.transfer(owner, remainingStuff);
     }
 }
