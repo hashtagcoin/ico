@@ -42,6 +42,11 @@ contract HorseTokenCrowdsale is Ownable {
     // pricing veriable
     uint256 public p1_duration;
     uint256 public p2_start;
+    
+    //TODO: remove the following lines
+    //test varibles
+    // uint256 public rewardTransferAmount;
+    // uint256 public rewardBonusTransferAmount;
 
 
     // loop control, ICO startup and limiters
@@ -87,9 +92,10 @@ contract HorseTokenCrowdsale is Ownable {
         if ((!(isCrowdSaleSetup))
             && (!(beneficiaryWallet > 0))){
             // init addresses
-            tokenReward                             = PausableToken(0xa297E2B17D4603CA7244BB933e912697a52376f8);  // Ropsten: 0xec155d80c7400484fb2d3732fa2aa779348f52e4 Kovan: 0xc35e495b3de0182DB3126e74b584B745839692aB
+            tokenReward                             = PausableToken(0x119686eF59F6c512ec47aC2E3957a4f742ad0043);  // Ropsten: 0xec155d80c7400484fb2d3732fa2aa779348f52e4 Kovan: 0xc35e495b3de0182DB3126e74b584B745839692aB
             beneficiaryWallet                       = 0xafE0e12d44486365e75708818dcA5558d29beA7D;   // mainnet is 0x00F959866E977698D14a36eB332686304a4d6AbA //testnet = 0xDe6BE2434E8eD8F74C8392A9eB6B6F7D63DDd3D7
-            tokensPerEthPrice                       = toPony(10000);                                         // set day1 initial value floating priceVar 1,500 tokens per Eth
+            // tokensPerEthPrice                       = toPony(10000);                                         // Base price 10000 tokens per Eth
+            tokensPerEthPrice                       = 10000;                                         // testnet
 
             // funding targets
             fundingMinCapInWei                      = 1 ether;                          //500 Eth (min cap) - crowdsale is considered success after this value
@@ -116,18 +122,22 @@ contract HorseTokenCrowdsale is Ownable {
         }
     }
 
-    function setBonusPrice() public view returns (uint256) {
+    function setBonusPrice() public constant returns (uint256 bonus) {
         require(isCrowdSaleSetup && fundingStartTime + p1_duration < p2_start );
         if (now >= fundingStartTime && now <= fundingStartTime + p1_duration) { // Phase-1 Bonus    +100% = 20,000 HORSE  = 1 ETH
-            return 10000;
+            // bonus = toPony(10000);
+            bonus = 10000;
         } else if (now > p2_start && now <= p2_start + 1 days ) { // Phase-2 day-1 Bonus +50% = 15,000 HORSE = 1 ETH
-            return 5000;
+            // bonus = toPony(5000);
+            bonus = 5000;
         } else if (now > p2_start + 1 days && now <= p2_start + 1 weeks - 1 days) { // Phase-2 week-1 Bonus +20% = 12,000 HORSE = 1 ETH
-            return 2000;
+            // bonus = toPony(2000);
+            bonus = 2000;
         } else if (now > p2_start + 1 weeks && now <= p2_start + 2 weeks ) { // Phase-2 week-2 Bonus +10% = 11,000 HORSE = 1 ETH
-            return 1000;
+            // bonus = toPony(1000);
+            bonus = 1000;
         } else if (now > p2_start + 2 weeks && now <= fundingEndTime ) { // Phase-2 week-3& week-4 Bonus +0% = 10,000 HORSE = 1 ETH
-            return 0;
+            bonus = 0;
         } else {
             revert();
         }
@@ -169,8 +179,8 @@ contract HorseTokenCrowdsale is Ownable {
         // 2. effects
         rewardBonusTransferAmount = setBonusPrice();
         amountRaisedInWei               = amountRaisedInWei.add(msg.value);
-        rewardTransferAmount            = (msg.value.mul(tokensPerEthPrice)).div(10**18);
-        rewardBonusTransferAmount       = (msg.value.mul(setBonusPrice())).div(10**18);
+        rewardTransferAmount            = (msg.value.mul(tokensPerEthPrice));//.div(10**18);
+        rewardBonusTransferAmount       = (msg.value.mul(rewardBonusTransferAmount));//.div(10**18);
 
         // 3. interaction
         rewardTransferAmount            = rewardTransferAmount.add(rewardBonusTransferAmount);
