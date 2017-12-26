@@ -21,28 +21,31 @@ contract Pausable is Ownable {
   * @dev Freezing certain number of tokens bought during bonus.
   */
   mapping (address => uint256) public frozen;
-  uint unfreezeTimestamp;
+  uint public unfreezeTimestamp;
 
-  function Pausable() {
+  function Pausable() public {
     unfreezeTimestamp = now + 60 days; //default 60 days from contract deploy date as a defensive mechanism. Will be updated once the crowdsale starts.
   }
 
-  function setUnfreezeTimestamp(uint _unfreezeTimestamp) onlyOwner {
-    require(now < _frozenTimestamp);
+  function setUnfreezeTimestamp(uint _unfreezeTimestamp) onlyOwner public {
+    require(now < _unfreezeTimestamp);
+    unfreezeTimestamp = _unfreezeTimestamp;
   }
 
-  function getFrozen(address _owner) view returns (uint256)  {
+  function getFrozen(address _owner) view public returns (uint256) {
     return frozen[_owner];
   }
 
-  function increaseFrozen(address _owner,uint _incrementalAmount) returns (uint256)  {
+  function increaseFrozen(address _owner,uint256 _incrementalAmount) public returns (bool)  {
     require(msg.sender == crowdsale || msg.sender == owner);
     frozen[_owner] = frozen[_owner].add(_incrementalAmount);
+    return true;
   }
 
-  function decreaseFrozen(address _owner,uint _incrementalAmount) returns (uint256)  {
+  function decreaseFrozen(address _owner,uint256 _incrementalAmount) public returns (bool)  {
     require(msg.sender == crowdsale || msg.sender == owner);
     frozen[_owner] = frozen[_owner].sub(_incrementalAmount);
+    return true;
   }
   
   function setCrowdsale(address _crowdsale) onlyOwner public {
@@ -52,16 +55,16 @@ contract Pausable is Ownable {
   /**
    * @dev Modifier to make a function callable only when there are unfrozen tokens.
    */
-  modifier frozenTransferCheck() {
+  modifier frozenTransferCheck(address _to, uint256 _value, uint256 balance) {
     if (now < unfreezeTimestamp){
-      require(_value <= balances[msg.sender].sub(frozen[msg.sender]) );
+      require(_value <= balance.sub(frozen[msg.sender]) );
     }
     _;
   }
 
-  modifier frozenTransferFromCheck() {
+  modifier frozenTransferFromCheck(address _from, address _to, uint256 _value, uint256 balance) {
     require(now < unfreezeTimestamp);
-    require(_value <= balances[_from].sub(frozen[_from]) );
+    require(_value <= balance.sub(frozen[_from]) );
     _;
   }
 

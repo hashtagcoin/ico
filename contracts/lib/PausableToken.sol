@@ -33,12 +33,13 @@ contract PausableToken is StandardToken, Pausable {
 //    return frozen[_owner];
 //  }
 
-  function transfer(address _to, uint256 _value) public whenNotPaused frozenTransferCheck returns (bool) {
+
+  function transfer(address _to, uint256 _value) public whenNotPaused frozenTransferCheck(_to, _value, balances[msg.sender]) returns (bool) {
 //    require(balances[msg.sender].sub());
     return super.transfer(_to, _value);
   }
 
-  function transferFrom(address _from, address _to, uint256 _value) public whenNotPaused frozenTransferFromCheck returns (bool) {
+  function transferFrom(address _from, address _to, uint256 _value) public whenNotPaused frozenTransferFromCheck(_from, _to, _value, balances[_from]) returns (bool) {
     return super.transferFrom(_from, _to, _value);
   }
 
