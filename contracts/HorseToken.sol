@@ -6,12 +6,12 @@ import "./lib/SafeMath.sol";
 import "./lib/PausableToken.sol";
 
 /**
- * @title HotToken
+ * @title HorseToken
  */
-contract HotToken is PausableToken {
+contract HorseToken is PausableToken {
 
-  string public constant name = "HotToken";
-  string public constant symbol = "HOT";
+  string public constant name = "Horse";
+  string public constant symbol = "HORSE";
   uint public constant decimals = 18; // only two deciminals, token cannot be divided past 1/100th
 
   uint256 public constant INITIAL_SUPPLY = 125000000*(10**decimals); // 10 million + 2 decimals
@@ -19,7 +19,7 @@ contract HotToken is PausableToken {
   /**
    * @dev Contructor that gives msg.sender all of existing tokens.
    */
-  function HotToken() public {
+  function HorseToken() public {
     totalSupply = INITIAL_SUPPLY;
     balances[msg.sender] = INITIAL_SUPPLY;
   }
