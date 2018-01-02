@@ -66,8 +66,8 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
         if ((!(isCrowdSaleSetup))
             && (!(beneficiaryWallet > 0))){
             // init addresses
-            tokenReward                             = PausableToken(0x8303d9598050552E3E26Feb08F4b8783d4bc693F);
-            beneficiaryWallet                       = 0x5CD86C6E1AB516B35E6b26fF9145cF2E11C96d82;
+            tokenReward                             = PausableToken(0xABf78e4Dc6e2eca6345F3e1B056E66E4CdB49Be8);
+            beneficiaryWallet                       = 0xafE0e12d44486365e75708818dcA5558d29beA7D;
             tokensPerEthPrice                       = 10000;
 
             // funding targets
@@ -127,7 +127,7 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
         BuyHORSEtokens();
     }
 
-    function BuyHORSEtokens() internal payable {
+    function BuyHORSEtokens() public payable {
         // conditions (length, crowdsale setup, zero check, exceed funding contrib check, contract valid check, within funding block range check, balance overflow check etc)
         require(!(msg.value == 0)
         && (isCrowdSaleSetup)

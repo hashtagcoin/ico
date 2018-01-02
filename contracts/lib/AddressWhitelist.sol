@@ -4,11 +4,8 @@ import "./Ownable.sol";
 
 contract AddressWhitelist is Ownable {
     // the addresses that are included in the whitelist
-    mapping (address => bool) public whitelisted;
-
-    function AddressWhitelist() public {
-    }
-
+    mapping (address => bool) whitelisted;
+    
     function isWhitelisted(address addr) view public returns (bool) {
         return whitelisted[addr];
     }

@@ -114,3 +114,4 @@ typings/
 .idea/modules.xml
 .idea/vcs.xml
 /mnemonic
+/infura_token
