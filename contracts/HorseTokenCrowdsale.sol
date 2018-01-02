@@ -66,8 +66,8 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
         if ((!(isCrowdSaleSetup))
             && (!(beneficiaryWallet > 0))){
             // init addresses
-            tokenReward                             = PausableToken(0xABf78e4Dc6e2eca6345F3e1B056E66E4CdB49Be8);
-            beneficiaryWallet                       = 0xafE0e12d44486365e75708818dcA5558d29beA7D;
+            tokenReward                             = PausableToken(0x3Ed240567aA04243652878a39eA59EaD4Dfd3e57);
+            beneficiaryWallet                       = 0x5cF5b78d088f8B73a3b816913F8c1B546084F4Eb;
             tokensPerEthPrice                       = 10000;
 
             // funding targets
