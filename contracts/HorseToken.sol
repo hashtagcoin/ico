@@ -10,17 +10,18 @@ import "./lib/PausableToken.sol";
  */
 contract HorseToken is PausableToken {
 
-  string public constant name = "Horse";
-  string public constant symbol = "HORSE";
-  uint public constant decimals = 18; // only two deciminals, token cannot be divided past 1/100th
+    string public constant name = "Horse";
+    string public constant symbol = "HORSE";
+    uint public constant decimals = 18;
 
-  uint256 public constant INITIAL_SUPPLY = 125000000*(10**decimals); // 10 million + 2 decimals
+    uint256 public constant INITIAL_SUPPLY = 125000000*(10**decimals); // 125 million x 18 decimals to represent in wei
 
-  /**
-   * @dev Contructor that gives msg.sender all of existing tokens.
-   */
-  function HorseToken() public {
-    totalSupply = INITIAL_SUPPLY;
-    balances[msg.sender] = INITIAL_SUPPLY;
-  }
+    /**
+     * @dev Contructor that gives msg.sender all of existing tokens.
+     */
+    function HorseToken() public {
+        totalSupply = INITIAL_SUPPLY;
+        balances[msg.sender] = INITIAL_SUPPLY;
+        Transfer(0x0, msg.sender, INITIAL_SUPPLY);
+    }
 }

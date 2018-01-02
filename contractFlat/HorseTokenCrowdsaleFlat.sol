@@ -1,44 +1,5 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.13;
 
-
-/**
- * @title SafeMath
- * @dev Math operations with safety checks that throw on error
- */
-library SafeMath {
-  function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-    if (a == 0) {
-      return 0;
-    }
-    uint256 c = a * b;
-    assert(c / a == b);
-    return c;
-  }
-
-  function div(uint256 a, uint256 b) internal pure returns (uint256) {
-    // assert(b > 0); // Solidity automatically throws when dividing by 0
-    uint256 c = a / b;
-    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-    return c;
-  }
-
-  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-    assert(b <= a);
-    return a - b;
-  }
-
-  function add(uint256 a, uint256 b) internal pure returns (uint256) {
-    uint256 c = a + b;
-    assert(c >= a);
-    return c;
-  }
-}
-
-/**
- * @title Ownable
- * @dev The Ownable contract has an owner address, and provides basic authorization control
- * functions, this simplifies the implementation of "user permissions".
- */
 contract Ownable {
   address public owner;
 
@@ -76,20 +37,54 @@ contract Ownable {
 
 }
 
-// **-----------------------------------------------
-// HORSE Token sale contract
-// **-----------------------------------------------
-// ERC Token Standard #20 Interface
-// https://github.com/ethereum/EIPs/issues/20
-// -------------------------------------------------
-
 contract PausableToken is Ownable {
     function balanceOf(address who) public constant returns (uint256);
     function transfer(address to, uint256 value) public returns (bool);
     function increaseFrozen(address _owner,uint256 _incrementalAmount) public returns (bool);
+    function burn(uint256 _value) public;
 }
 
-contract HorseTokenCrowdsale is Ownable {
+contract AddressWhitelist is Ownable {
+    // the addresses that are included in the whitelist
+    mapping (address => bool) public whitelisted;
+
+    function AddressWhitelist() public {
+    }
+
+    function isWhitelisted(address addr) view public returns (bool) {
+        return whitelisted[addr];
+    }
+
+    event LogWhitelistAdd(address indexed addr);
+
+    // add these addresses to the whitelist
+    function addToWhitelist(address[] addresses) public onlyOwner returns (bool) {
+        for (uint i = 0; i < addresses.length; i++) {
+            if (!whitelisted[addresses[i]]) {
+                whitelisted[addresses[i]] = true;
+                LogWhitelistAdd(addresses[i]);
+            }
+        }
+
+        return true;
+    }
+
+    event LogWhitelistRemove(address indexed addr);
+
+    // remove these addresses from the whitelist
+    function removeFromWhitelist(address[] addresses) public onlyOwner returns (bool) {
+        for (uint i = 0; i < addresses.length; i++) {
+            if (whitelisted[addresses[i]]) {
+                whitelisted[addresses[i]] = false;
+                LogWhitelistRemove(addresses[i]);
+            }
+        }
+
+        return true;
+    }
+}
+
+contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
     using SafeMath for uint256;
     PausableToken  public tokenReward;                         // address of the token used as reward
 
@@ -138,41 +133,29 @@ contract HorseTokenCrowdsale is Ownable {
         tokenTotalSupply = toHorse(initialSupply);
     }
 
-    // remaining number of tokens
-    function remainingSupply() public constant returns (uint256 tokensLeft) {
-        tokensLeft = tokensRemaining;
-    }
-
-    function increaseFrozen(address _ownerLocal, uint256 _incrementLocal) public {
-        tokenReward.increaseFrozen(_ownerLocal, _incrementLocal);
-    }
-
     // setup the CrowdSale parameters
     function setupCrowdsale(uint256 _fundingStartTime) public onlyOwner returns (bytes32 response) {
         if ((!(isCrowdSaleSetup))
             && (!(beneficiaryWallet > 0))){
             // init addresses
-            tokenReward                             = PausableToken(0xFA4d2f906fdcC67F6E397d891e9BE85B0093a1F5);  // Ropsten: 0xec155d80c7400484fb2d3732fa2aa779348f52e4 Kovan: 0xc35e495b3de0182DB3126e74b584B745839692aB
-            beneficiaryWallet                       = 0xafE0e12d44486365e75708818dcA5558d29beA7D;   // mainnet is 0x00F959866E977698D14a36eB332686304a4d6AbA //testnet = 0xDe6BE2434E8eD8F74C8392A9eB6B6F7D63DDd3D7
-            tokensPerEthPrice                       = 10000;                                         // testnet
+            tokenReward                             = PausableToken(0x8303d9598050552E3E26Feb08F4b8783d4bc693F);
+            beneficiaryWallet                       = 0x5CD86C6E1AB516B35E6b26fF9145cF2E11C96d82;
+            tokensPerEthPrice                       = 10000;
 
             // funding targets
-            fundingMinCapInWei                      = 1 ether;                          //500 Eth (min cap) - crowdsale is considered success after this value
+            fundingMinCapInWei                      = 500 ether;                          //500 Eth (min cap) - crowdsale is considered success after this value
 
             // update values
             decimals                                = 18;
             amountRaisedInWei                       = 0;
-            // initialSupply                           = toPony(100000000);                  //   100 million * 18 decimal
-            initialSupply                           = toPony(16459);                  //   100 million * 18 decimal
+            initialSupply                           = toPony(100000000);                  //   100 million * 18 decimal
             tokensRemaining                         = initialSupply;
 
             fundingStartTime                        = _fundingStartTime;
-            // p1_duration                             = 7 days;
-            p1_duration                             = 7 minutes; //testnet
-            // p2_start                                = fundingStartTime + p1_duration + 6 days;
-            p2_start                                = fundingStartTime + p1_duration + 6 minutes;
-            // fundingEndTime                          = p2_start + 4 weeks;
-            fundingEndTime                          = p2_start + 4 hours;
+            p1_duration                             = 7 days;
+            p2_start                                = fundingStartTime + p1_duration + 6 days;
+
+            fundingEndTime                          = p2_start + 4 weeks;
 
             // configure crowdsale
             isCrowdSaleSetup                        = true;
@@ -183,34 +166,20 @@ contract HorseTokenCrowdsale is Ownable {
     }
 
     function setBonusPrice() public constant returns (uint256 bonus) {
-        require(isCrowdSaleSetup && fundingStartTime + p1_duration < p2_start );
+        require(isCrowdSaleSetup && fundingStartTime + p1_duration <= p2_start );
         if (now >= fundingStartTime && now <= fundingStartTime + p1_duration) { // Phase-1 Bonus    +100% = 20,000 HORSE  = 1 ETH
-            // bonus = toPony(10000);
             bonus = 10000;
         } else if (now > p2_start && now <= p2_start + 1 days ) { // Phase-2 day-1 Bonus +50% = 15,000 HORSE = 1 ETH
-            // bonus = toPony(5000);
             bonus = 5000;
         } else if (now > p2_start + 1 days && now <= p2_start + 1 weeks - 1 days) { // Phase-2 week-1 Bonus +20% = 12,000 HORSE = 1 ETH
-            // bonus = toPony(2000);
             bonus = 2000;
         } else if (now > p2_start + 1 weeks && now <= p2_start + 2 weeks ) { // Phase-2 week-2 Bonus +10% = 11,000 HORSE = 1 ETH
-            // bonus = toPony(1000);
             bonus = 1000;
         } else if (now > p2_start + 2 weeks && now <= fundingEndTime ) { // Phase-2 week-3& week-4 Bonus +0% = 10,000 HORSE = 1 ETH
             bonus = 0;
         } else {
             revert();
         }
-    }
-
-    // default payable function when sending ether to this contract
-    function () public payable {
-        require(msg.data.length == 0);
-        BuyHORSEtokens();
-    }
-
-    function getBlockNumber() public constant returns (uint) {
-        return block.timestamp;
     }
 
     function updateDuration(uint256 _newP1Duration, uint256 _newP2Start) public onlyOwner{ // function to update the duration of phase-1 and adjust the start time of phase-2
@@ -224,6 +193,12 @@ contract HorseTokenCrowdsale is Ownable {
         fundingEndTime = p2_start + 4 weeks;
     }
 
+    // default payable function when sending ether to this contract
+    function () public payable {
+        require(msg.data.length == 0);
+        BuyHORSEtokens();
+    }
+
     function BuyHORSEtokens() public payable {
         // conditions (length, crowdsale setup, zero check, exceed funding contrib check, contract valid check, within funding block range check, balance overflow check etc)
         require(!(msg.value == 0)
@@ -232,6 +207,10 @@ contract HorseTokenCrowdsale is Ownable {
         && (now <= fundingEndTime)
         && (tokensRemaining > 0));
 
+        // only whitelisted addresses are allowed during the first day of phase 1
+        if (now <= fundingStartTime + 1 days) {
+            assert(isWhitelisted(msg.sender));
+        }
         uint256 rewardTransferAmount        = 0;
         uint256 rewardBaseTransferAmount    = 0;
         uint256 rewardBonusTransferAmount   = 0;
@@ -265,10 +244,10 @@ contract HorseTokenCrowdsale is Ownable {
         }
     }
 
-    function beneficiaryMultiSigWithdraw(uint256 _amount) public onlyOwner {
+    function beneficiaryMultiSigWithdraw() public onlyOwner {
         checkGoalReached();
         require(areFundsReleasedToBeneficiary && (amountRaisedInWei >= fundingMinCapInWei));
-        beneficiaryWallet.transfer(_amount);
+        beneficiaryWallet.transfer(this.balance);
     }
 
     function checkGoalReached() public returns (bytes32 response) { // return crowdfund status to owner for each result case, update public constant
@@ -320,8 +299,38 @@ contract HorseTokenCrowdsale is Ownable {
     }
 
     function burnRemainingTokens() onlyOwner public {
-        require(now > fundingEndTime && amountRaisedInWei < fundingMinCapInWei);
+        // require(now > fundingEndTime);
         uint256 tokensToBurn = tokenReward.balanceOf(this);
-        tokenReward.transfer(address(0),tokensToBurn);
+        tokenReward.burn(tokensToBurn);
     }
 }
+
+library SafeMath {
+  function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+    if (a == 0) {
+      return 0;
+    }
+    uint256 c = a * b;
+    assert(c / a == b);
+    return c;
+  }
+
+  function div(uint256 a, uint256 b) internal pure returns (uint256) {
+    // assert(b > 0); // Solidity automatically throws when dividing by 0
+    uint256 c = a / b;
+    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
+    return c;
+  }
+
+  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+    assert(b <= a);
+    return a - b;
+  }
+
+  function add(uint256 a, uint256 b) internal pure returns (uint256) {
+    uint256 c = a + b;
+    assert(c >= a);
+    return c;
+  }
+}
+

@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 
 import '../lib/ERC20Basic.sol';
-import './SafeERC20.sol';
+import '../lib/SafeERC20.sol';
 import '../lib/Ownable.sol';
 import '../lib/SafeMath.sol';
 
