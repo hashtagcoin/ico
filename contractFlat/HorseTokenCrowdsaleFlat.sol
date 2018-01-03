@@ -46,10 +46,7 @@ contract PausableToken is Ownable {
 
 contract AddressWhitelist is Ownable {
     // the addresses that are included in the whitelist
-    mapping (address => bool) public whitelisted;
-
-    function AddressWhitelist() public {
-    }
+    mapping (address => bool) whitelisted;
 
     function isWhitelisted(address addr) view public returns (bool) {
         return whitelisted[addr];
@@ -128,18 +125,13 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
         return amount.div(10**decimals);
     }
 
-    // total number of tokens initially
-    function initialHORSESupply() public constant returns (uint256 tokenTotalSupply) {
-        tokenTotalSupply = toHorse(initialSupply);
-    }
-
     // setup the CrowdSale parameters
-    function setupCrowdsale(uint256 _fundingStartTime) public onlyOwner returns (bytes32 response) {
+    function setupCrowdsale(uint256 _fundingStartTime) external onlyOwner {
         if ((!(isCrowdSaleSetup))
             && (!(beneficiaryWallet > 0))){
             // init addresses
-            tokenReward                             = PausableToken(0x8303d9598050552E3E26Feb08F4b8783d4bc693F);
-            beneficiaryWallet                       = 0x5CD86C6E1AB516B35E6b26fF9145cF2E11C96d82;
+            tokenReward                             = PausableToken(0x3Ed240567aA04243652878a39eA59EaD4Dfd3e57);
+            beneficiaryWallet                       = 0x5cF5b78d088f8B73a3b816913F8c1B546084F4Eb;
             tokensPerEthPrice                       = 10000;
 
             // funding targets
@@ -160,13 +152,12 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
             // configure crowdsale
             isCrowdSaleSetup                        = true;
             isCrowdSaleClosed                       = false;
-
-            return "Crowdsale is setup";
         }
     }
 
     function setBonusPrice() public constant returns (uint256 bonus) {
-        require(isCrowdSaleSetup && fundingStartTime + p1_duration <= p2_start );
+        require(isCrowdSaleSetup);
+        require(fundingStartTime + p1_duration <= p2_start );
         if (now >= fundingStartTime && now <= fundingStartTime + p1_duration) { // Phase-1 Bonus    +100% = 20,000 HORSE  = 1 ETH
             bonus = 10000;
         } else if (now > p2_start && now <= p2_start + 1 days ) { // Phase-2 day-1 Bonus +50% = 15,000 HORSE = 1 ETH
@@ -182,9 +173,10 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
         }
     }
 
-    function updateDuration(uint256 _newP1Duration, uint256 _newP2Start) public onlyOwner{ // function to update the duration of phase-1 and adjust the start time of phase-2
+    function updateDuration(uint256 _newP1Duration, uint256 _newP2Start) external onlyOwner{ // function to update the duration of phase-1 and adjust the start time of phase-2
         require( isCrowdSaleSetup
-            && !((p1_duration == _newP1Duration) && (p2_start == _newP2Start))
+            && !(p1_duration == _newP1Duration)
+            && !(p2_start == _newP2Start)
             && (now < fundingStartTime + p1_duration)
             && (now < fundingStartTime + _newP1Duration)
             && (fundingStartTime + _newP1Duration < _newP2Start));
@@ -194,7 +186,7 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
     }
 
     // default payable function when sending ether to this contract
-    function () public payable {
+    function () external payable {
         require(msg.data.length == 0);
         BuyHORSEtokens();
     }
@@ -233,18 +225,16 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
 
         amountRaisedInWei               = amountRaisedInWei.add(contributionInWei);
         tokensRemaining                 = tokensRemaining.sub(rewardTransferAmount);  // will cause throw if attempt to purchase over the token limit in one tx or at all once limit reached
-        tokenReward.transfer(msg.sender, rewardTransferAmount);
-        assert(tokenReward.increaseFrozen(msg.sender, rewardBonusTransferAmount));
-
         fundValue[msg.sender]           = fundValue[msg.sender].add(contributionInWei);
-
+        assert(tokenReward.increaseFrozen(msg.sender, rewardBonusTransferAmount));
+        tokenReward.transfer(msg.sender, rewardTransferAmount);
         Buy(msg.sender, contributionInWei, rewardTransferAmount);
         if (refundInWei > 0) {
             msg.sender.transfer(refundInWei);
         }
     }
 
-    function beneficiaryMultiSigWithdraw() public onlyOwner {
+    function beneficiaryMultiSigWithdraw() external onlyOwner {
         checkGoalReached();
         require(areFundsReleasedToBeneficiary && (amountRaisedInWei >= fundingMinCapInWei));
         beneficiaryWallet.transfer(this.balance);
@@ -280,7 +270,7 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
         }
     }
 
-    function refund() public { // any contributor can call this to have their Eth returned. user's purchased HORSE tokens are burned prior refund of Eth.
+    function refund() external { // any contributor can call this to have their Eth returned. user's purchased HORSE tokens are burned prior refund of Eth.
         checkGoalReached();
         //require minCap not reached
         require ((amountRaisedInWei < fundingMinCapInWei)
@@ -298,7 +288,7 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
         Refund(msg.sender, ethRefund);
     }
 
-    function burnRemainingTokens() onlyOwner public {
+    function burnRemainingTokens() onlyOwner external {
         // require(now > fundingEndTime);
         uint256 tokensToBurn = tokenReward.balanceOf(this);
         tokenReward.burn(tokensToBurn);
