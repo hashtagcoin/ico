@@ -47,7 +47,6 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
 
     event Buy(address indexed _sender, uint256 _eth, uint256 _HORSE);
     event Refund(address indexed _refunder, uint256 _value);
-    event Burn(address _from, uint256 _value);
     mapping(address => uint256) fundValue;
 
 
