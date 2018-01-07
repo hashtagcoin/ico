@@ -123,7 +123,7 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
     function updateDuration(uint256 _newP2Start) external onlyOwner { // function to update the duration of phase-1 and adjust the start time of phase-2
         require( isCrowdSaleSetup
             && !(p2_start == _newP2Start)
-            && !(_newP2Start > fundingStartTime+p1_duration)
+            && !(_newP2Start > fundingStartTime + p1_duration + 30 days)
             && (now < p2_start)
             && (fundingStartTime + p1_duration < _newP2Start));
         p2_start = _newP2Start;
