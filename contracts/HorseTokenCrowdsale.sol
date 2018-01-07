@@ -66,8 +66,8 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
         if ((!(isCrowdSaleSetup))
             && (!(beneficiaryWallet > 0))){
             // init addresses
-            tokenReward                             = PausableToken(0x3Ed240567aA04243652878a39eA59EaD4Dfd3e57);
-            beneficiaryWallet                       = 0x5cF5b78d088f8B73a3b816913F8c1B546084F4Eb;
+            tokenReward                             = PausableToken(0x2261C737066e927C8b775b7D8C98068bee172456);
+            beneficiaryWallet                       = 0xafE0e12d44486365e75708818dcA5558d29beA7D;
             tokensPerEthPrice                       = 10000;
 
             // funding targets
@@ -81,6 +81,8 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
 
             fundingStartTime                        = _fundingStartTime;
             p1_duration                             = 7 days;
+            p1_white_duration                           = 1 days;
+            
             p2_start                                = fundingStartTime + p1_duration + 6 days;
 
             fundingEndTime                          = p2_start + 4 weeks;
@@ -98,7 +100,7 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
             bonus = 10000;
         } else if (now > p2_start && now <= p2_start + 1 days ) { // Phase-2 day-1 Bonus +50% = 15,000 HORSE = 1 ETH
             bonus = 5000;
-        } else if (now > p2_start + 1 days && now <= p2_start + 1 weeks - 1 days) { // Phase-2 week-1 Bonus +20% = 12,000 HORSE = 1 ETH
+        } else if (now > p2_start + 1 days && now <= p2_start + 1 weeks ) { // Phase-2 week-1 Bonus +20% = 12,000 HORSE = 1 ETH
             bonus = 2000;
         } else if (now > p2_start + 1 weeks && now <= p2_start + 2 weeks ) { // Phase-2 week-2 Bonus +10% = 11,000 HORSE = 1 ETH
             bonus = 1000;
@@ -108,22 +110,23 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
             revert();
         }
     }
-    
-    function updateDuration(uint256 _newP1Duration, uint256 _newP2Start) external onlyOwner{ // function to update the duration of phase-1 and adjust the start time of phase-2
+
+        // p1_duration constant. Only p2 start changes. p2 start cannot be greater than 1 month from p1 end
+    function updateDuration(uint256 _newP2Start) external onlyOwner { // function to update the duration of phase-1 and adjust the start time of phase-2
         require( isCrowdSaleSetup
-            && !(p1_duration == _newP1Duration)
             && !(p2_start == _newP2Start)
-            && (now < fundingStartTime + p1_duration) 
-            && (now < fundingStartTime + _newP1Duration)
-            && (fundingStartTime + _newP1Duration < _newP2Start));
-        p1_duration = _newP1Duration;
+            && !(_newP2Start > fundingStartTime+p1_duration)
+            && (now < p2_start)
+            && (fundingStartTime + p1_duration < _newP2Start));
         p2_start = _newP2Start;
-        fundingEndTime = p2_start + 4 weeks;
+        fundingEndTime = p2_start.add(4 weeks);
     }
 
     // default payable function when sending ether to this contract
     function () external payable {
+        require(tx.gasprice <= 50000000000);
         require(msg.data.length == 0);
+        
         BuyHORSEtokens();
     }
 
@@ -134,9 +137,9 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
         && (now >= fundingStartTime)
         && (now <= fundingEndTime)
         && (tokensRemaining > 0));
-        
+
         // only whitelisted addresses are allowed during the first day of phase 1
-        if (now <= fundingStartTime + 1 days) {
+        if (now <= fundingStartTime + p1_white_duration) {
             assert(isWhitelisted(msg.sender));
         }
         uint256 rewardTransferAmount        = 0;
@@ -158,7 +161,7 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
             rewardTransferAmount = tokensRemaining;
             refundInWei = msg.value.sub(contributionInWei);
         }
-        
+
         amountRaisedInWei               = amountRaisedInWei.add(contributionInWei);
         tokensRemaining                 = tokensRemaining.sub(rewardTransferAmount);  // will cause throw if attempt to purchase over the token limit in one tx or at all once limit reached
         fundValue[msg.sender]           = fundValue[msg.sender].add(contributionInWei);
@@ -214,16 +217,15 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
         && (now > fundingEndTime)
         && (fundValue[msg.sender] > 0));
 
-        //burn user's token HORSE token balance, refund Eth sent
+        //refund Eth sent
         uint256 ethRefund = fundValue[msg.sender];
         fundValue[msg.sender] = 0;
-        Burn(msg.sender, fundValue[msg.sender]);
 
         //send Eth back, burn tokens
         msg.sender.transfer(ethRefund);
         Refund(msg.sender, ethRefund);
     }
-    
+
     function burnRemainingTokens() onlyOwner external {
         // require(now > fundingEndTime);
         uint256 tokensToBurn = tokenReward.balanceOf(this);
