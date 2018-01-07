@@ -46,6 +46,9 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
     bool    public areFundsReleasedToBeneficiary   = false;     // boolean for founder to receive Eth or not
     bool    public isCrowdSaleSetup                = false;     // boolean for crowdsale setup
 
+    // Gas price limit
+    uint256 maxGasPrice = 50000000000;
+
     event Buy(address indexed _sender, uint256 _eth, uint256 _HORSE);
     event Refund(address indexed _refunder, uint256 _value);
     mapping(address => uint256) fundValue;
@@ -59,6 +62,11 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
     // convert tokens to whole
     function toHorse(uint256 amount) public constant returns (uint256) {
         return amount.div(10**decimals);
+    }
+
+    function updateMaxGasPrice(uint256 _newGasPrice) public onlyOwner {
+        require(_newGasPrice != 0);
+        maxGasPrice = _newGasPrice;
     }
 
     // setup the CrowdSale parameters
@@ -124,7 +132,7 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
 
     // default payable function when sending ether to this contract
     function () external payable {
-        require(tx.gasprice <= 50000000000);
+        require(tx.gasprice <= maxGasPrice);
         require(msg.data.length == 0);
         
         BuyHORSEtokens();
