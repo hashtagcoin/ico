@@ -37,6 +37,7 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
     // pricing veriable
     uint256 public p1_duration;
     uint256 public p2_start;
+    uint256 public p1_white_duration;
 
     // loop control, ICO startup and limiters
     uint256 public fundingStartTime;                           // crowdsale start time#
