@@ -10,8 +10,8 @@ import "./lib/PausableToken.sol";
  */
 contract HorseToken is PausableToken {
 
-    string public constant name = "Frodo";
-    string public constant symbol = "FRODO";
+    string public constant name = "Horse";
+    string public constant symbol = "HORSE";
     uint public constant decimals = 18;
 
     uint256 public constant INITIAL_SUPPLY = 125000000*(10**decimals); // 125 million x 18 decimals to represent in wei
