@@ -74,9 +74,9 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
         if ((!(isCrowdSaleSetup))
             && (!(beneficiaryWallet > 0))){
             // init addresses
-            tokenReward                             = PausableToken(0x2261C737066e927C8b775b7D8C98068bee172456);
-            beneficiaryWallet                       = 0xafE0e12d44486365e75708818dcA5558d29beA7D;
-            tokensPerEthPrice                       = 10000;
+            tokenReward                             = PausableToken(0xbF106842f8887e87F5848B008939Fb2F44715679);
+            beneficiaryWallet                       = 0xCbf063f82da81350B3724B67a8E12DD77f759f0e;
+            tokensPerEthPrice                       = 12500;
 
             // funding targets
             fundingMinCapInWei                      = 500 ether;                          //500 Eth (min cap) - crowdsale is considered success after this value
@@ -89,7 +89,7 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
 
             fundingStartTime                        = _fundingStartTime;
             p1_duration                             = 7 days;
-            p1_white_duration                           = 1 days;
+            p1_white_duration                       = 1 days;
             
             p2_start                                = fundingStartTime + p1_duration + 6 days;
 
@@ -105,13 +105,13 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
         require(isCrowdSaleSetup);
         require(fundingStartTime + p1_duration <= p2_start );
         if (now >= fundingStartTime && now <= fundingStartTime + p1_duration) { // Phase-1 Bonus    +100% = 20,000 HORSE  = 1 ETH
-            bonus = 10000;
+            bonus = 12500;
         } else if (now > p2_start && now <= p2_start + 1 days ) { // Phase-2 day-1 Bonus +50% = 15,000 HORSE = 1 ETH
-            bonus = 5000;
+            bonus = 6250;
         } else if (now > p2_start + 1 days && now <= p2_start + 1 weeks ) { // Phase-2 week-1 Bonus +20% = 12,000 HORSE = 1 ETH
-            bonus = 2000;
+            bonus = 2500;
         } else if (now > p2_start + 1 weeks && now <= p2_start + 2 weeks ) { // Phase-2 week-2 Bonus +10% = 11,000 HORSE = 1 ETH
-            bonus = 1000;
+            bonus = 1250;
         } else if (now > p2_start + 2 weeks && now <= fundingEndTime ) { // Phase-2 week-3& week-4 Bonus +0% = 10,000 HORSE = 1 ETH
             bonus = 0;
         } else {
@@ -235,7 +235,7 @@ contract HorseTokenCrowdsale is Ownable, AddressWhitelist {
     }
 
     function burnRemainingTokens() onlyOwner external {
-        // require(now > fundingEndTime);
+        require(now > fundingEndTime);
         uint256 tokensToBurn = tokenReward.balanceOf(this);
         tokenReward.burn(tokensToBurn);
     }
