@@ -6,12 +6,12 @@ import "./lib/SafeMath.sol";
 import "./lib/PausableToken.sol";
 
 /**
- * @title HorseToken
+ * @title MefyToken
  */
 contract HorseToken is PausableToken {
 
-    string public constant name = "Horse";
-    string public constant symbol = "HORSE";
+    string public constant name = "Mefy";
+    string public constant symbol = "MEFY";
     uint public constant decimals = 18;
 
     uint256 public constant INITIAL_SUPPLY = 125000000*(10**decimals); // 125 million x 18 decimals to represent in wei
@@ -19,7 +19,7 @@ contract HorseToken is PausableToken {
     /**
      * @dev Contructor that gives msg.sender all of existing tokens.
      */
-    function HorseToken() public {
+    function MefyToken() public {
         totalSupply = INITIAL_SUPPLY;
         balances[msg.sender] = INITIAL_SUPPLY;
         Transfer(0x0, msg.sender, INITIAL_SUPPLY);
